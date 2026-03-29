@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0f1117">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="manifest.json">
+    <title>Kalorientracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --bg: #0f1117;
+            --card: #1a1d27;
+            --border: #2a2d3a;
+            --text: #e4e4e7;
+            --muted: #8b8d97;
+            --accent: #6366f1;
+            --accent-hover: #818cf8;
+            --green: #22c55e;
+            --red: #ef4444;
+            --orange: #f59e0b;
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            min-height: 100dvh;
+            -webkit-font-smoothing: antialiased;
+            padding-bottom: calc(70px + var(--safe-bottom));
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 12px;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            padding: 20px 0 14px;
+        }
+
+        header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent), var(--green));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        header p {
+            color: var(--muted);
+            margin-top: 4px;
+            font-size: 0.8rem;
+        }
+
+        /* Stats Cards - 2x2 grid on mobile */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .stat-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+        }
+
+        .stat-card .label {
+            font-size: 0.65rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            margin-bottom: 4px;
+            line-height: 1.3;
+        }
+
+        .stat-card .value {
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+
+        .stat-card .sub {
+            font-size: 0.7rem;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+
+        .positive { color: var(--green); }
+        .negative { color: var(--red); }
+        .neutral { color: var(--orange); }
+
+        /* Sections */
+        .section {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .section h2 {
+            font-size: 1rem;
+            margin-bottom: 12px;
+        }
+
+        /* Collapsible settings */
+        .section-toggle {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        .section-toggle .chevron {
+            font-size: 0.8rem;
+            color: var(--muted);
+            transition: transform 0.2s;
+        }
+
+        .section-toggle.open .chevron {
+            transform: rotate(180deg);
+        }
+
+        .collapsible {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .collapsible.open {
+            max-height: 500px;
+        }
+
+        .collapsible-inner {
+            padding-top: 12px;
+        }
+
+        /* Form */
+        .form-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .form-row-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--muted);
+            margin-bottom: 5px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            font-size: 16px; /* prevents iOS zoom */
+            outline: none;
+            transition: border-color 0.2s;
+            -webkit-appearance: none;
+        }
+
+        .form-group input:focus {
+            border-color: var(--accent);
+        }
+
+        .btn {
+            padding: 14px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+            -webkit-appearance: none;
+            touch-action: manipulation;
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+            width: 100%;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        .btn-sm {
+            padding: 10px 16px;
+            font-size: 0.85rem;
+        }
+
+        .btn-secondary {
+            background: var(--border);
+            color: var(--text);
+        }
+
+        .btn-secondary:hover {
+            background: var(--muted);
+        }
+
+        .btn-cancel {
+            background: transparent;
+            color: var(--muted);
+            border: 1px solid var(--border);
+            width: 100%;
+        }
+
+        .form-actions-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .form-actions-single {
+            display: block;
+        }
+
+        .edit-banner {
+            background: rgba(99, 102, 241, 0.15);
+            border: 1px solid var(--accent);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 0.8rem;
+            color: var(--accent-hover);
+            margin-bottom: 10px;
+        }
+
+        /* Chart */
+        .chart-container {
+            position: relative;
+            height: 220px;
+        }
+
+        /* Entry Cards (mobile-friendly table replacement) */
+        .entry-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .entry-card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+        }
+
+        .entry-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .entry-date {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .entry-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .entry-actions button {
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--muted);
+            padding: 6px 10px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        .entry-actions .edit-btn:active { color: var(--accent); border-color: var(--accent); }
+        .entry-actions .del-btn:active { color: var(--red); border-color: var(--red); }
+
+        .entry-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .entry-field {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .entry-field .ef-label {
+            font-size: 0.65rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .entry-field .ef-value {
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .deficit-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .deficit-badge.is-deficit {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--green);
+        }
+
+        .deficit-badge.is-surplus {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--red);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 30px 16px;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        /* Settings form */
+        .settings-form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .export-btns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .export-btns .btn {
+            font-size: 0.8rem;
+            padding: 10px 8px;
+            text-align: center;
+        }
+
+        /* Bottom nav */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--card);
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0;
+            padding-bottom: calc(8px + var(--safe-bottom));
+            z-index: 100;
+        }
+
+        .nav-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            background: none;
+            border: none;
+            color: var(--muted);
+            font-size: 0.6rem;
+            padding: 4px 12px;
+            cursor: pointer;
+            touch-action: manipulation;
+            transition: color 0.15s;
+        }
+
+        .nav-btn.active {
+            color: var(--accent);
+        }
+
+        .nav-btn svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        /* Tab content */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Desktop enhancements */
+        @media (min-width: 768px) {
+            .container { max-width: 700px; padding: 20px; }
+            header h1 { font-size: 1.8rem; }
+            .stat-card .value { font-size: 1.4rem; }
+            .stat-card .label { font-size: 0.75rem; }
+            .chart-container { height: 300px; }
+            body { padding-bottom: 0; }
+            .bottom-nav { display: none; }
+            .tab-content { display: block !important; }
+        }
+
+        /* PWA install prompt */
+        .install-banner {
+            background: linear-gradient(135deg, var(--accent), #4f46e5);
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 16px;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .install-banner.show { display: flex; }
+
+        .install-banner p {
+            font-size: 0.85rem;
+            color: white;
+            flex: 1;
+        }
+
+        .install-banner .btn {
+            padding: 8px 16px;
+            font-size: 0.8rem;
+            background: white;
+            color: var(--accent);
+            white-space: nowrap;
+        }
+
+        .install-banner .dismiss {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.7);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        /* Progress bar */
+        .progress-section {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 10px;
+        }
+
+        .progress-header h2 {
+            font-size: 1rem;
+        }
+
+        .progress-pct {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .progress-track {
+            background: var(--bg);
+            border-radius: 10px;
+            height: 18px;
+            overflow: hidden;
+            position: relative;
+            margin-bottom: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 10px;
+            background: linear-gradient(90deg, var(--accent), var(--green));
+            transition: width 0.5s ease;
+            min-width: 0;
+        }
+
+        .progress-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--muted);
+        }
+
+        .progress-labels .current {
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .progress-meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .progress-meta-item {
+            background: var(--bg);
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .progress-meta-item .pm-label {
+            font-size: 0.65rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .progress-meta-item .pm-value {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-top: 2px;
+        }
+
+        .progress-none {
+            color: var(--muted);
+            font-size: 0.85rem;
+            text-align: center;
+            padding: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Kalorientracker</h1>
+            <p>Defizit & Gewichtsverlauf im Blick</p>
+        </header>
+
+        <!-- Install Banner -->
+        <div class="install-banner" id="installBanner">
+            <p>App auf Homescreen installieren</p>
+            <button class="btn" onclick="installPWA()">Installieren</button>
+            <button class="dismiss" onclick="dismissInstall()">&times;</button>
+        </div>
+
+        <!-- TAB: Dashboard -->
+        <div class="tab-content active" id="tab-dashboard">
+            <!-- Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="label">Kumuliertes Defizit</div>
+                    <div class="value" id="totalDeficit">0 kcal</div>
+                    <div class="sub" id="totalDays">0 Tage</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Theo. Fettverlust</div>
+                    <div class="value" id="theoLoss">0.00 kg</div>
+                    <div class="sub">7000 kcal/kg</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Tats. Gewichtsverlust</div>
+                    <div class="value" id="actualLoss">0.00 kg</div>
+                    <div class="sub" id="actualWeight">Aktuell: — kg</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Differenz</div>
+                    <div class="value" id="diffLoss">0.00 kg</div>
+                    <div class="sub" id="diffHint">Theorie vs. Realität</div>
+                </div>
+            </div>
+
+            <!-- Goal Progress -->
+            <div class="progress-section" id="progressSection" style="display:none">
+                <div class="progress-header">
+                    <h2>Ziel-Fortschritt</h2>
+                    <span class="progress-pct" id="progressPct">0%</span>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-fill" id="progressFill" style="width:0%"></div>
+                </div>
+                <div class="progress-labels">
+                    <span id="progressStart">—</span>
+                    <span class="current" id="progressCurrent">—</span>
+                    <span id="progressGoal">—</span>
+                </div>
+                <div class="progress-meta">
+                    <div class="progress-meta-item">
+                        <div class="pm-label">Noch zu verlieren</div>
+                        <div class="pm-value" id="progressRemaining">���</div>
+                    </div>
+                    <div class="progress-meta-item">
+                        <div class="pm-label">Voraussichtlich am</div>
+                        <div class="pm-value" id="progressEta">—</div>
+                    </div>
+                    <div class="progress-meta-item">
+                        <div class="pm-label">Tempo (7-Tage)</div>
+                        <div class="pm-value" id="progressRate">—</div>
+                    </div>
+                    <div class="progress-meta-item">
+                        <div class="pm-label">Ø Gewicht (7 Tage)</div>
+                        <div class="pm-value" id="progressAvg">—</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Weight Chart -->
+            <div class="section">
+                <h2>Gewicht: Theorie vs. Realität</h2>
+                <div class="chart-container">
+                    <canvas id="weightChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Deficit Chart -->
+            <div class="section">
+                <h2>Tägliches Defizit / Überschuss</h2>
+                <div class="chart-container">
+                    <canvas id="deficitChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: Add Entry -->
+        <div class="tab-content" id="tab-add">
+            <div class="section">
+                <h2 id="formTitle">Tageseintrag</h2>
+                <div id="editBanner" class="edit-banner" style="display:none">Eintrag wird bearbeitet</div>
+                <div class="form-stack">
+                    <div class="form-group">
+                        <label>Datum</label>
+                        <input type="date" id="entryDate">
+                    </div>
+                    <div class="form-row-2">
+                        <div class="form-group">
+                            <label>Gegessen (kcal)</label>
+                            <input type="number" id="caloriesIn" inputmode="numeric" placeholder="1800">
+                        </div>
+                        <div class="form-group">
+                            <label>Verbrannt (kcal)</label>
+                            <input type="number" id="caloriesBurned" inputmode="numeric" placeholder="400">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Gewicht heute (kg)</label>
+                        <input type="number" id="weightToday" inputmode="decimal" step="0.1" placeholder="84.3">
+                    </div>
+                    <div id="formActionsSingle" class="form-actions-single">
+                        <button class="btn btn-primary" id="submitBtn" onclick="addEntry()">Eintrag speichern</button>
+                    </div>
+                    <div id="formActionsEdit" class="form-actions-row" style="display:none">
+                        <button class="btn btn-cancel" onclick="cancelEdit()">Abbrechen</button>
+                        <button class="btn btn-primary" onclick="addEntry()">Speichern</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: History -->
+        <div class="tab-content" id="tab-history">
+            <div class="section">
+                <h2>Verlauf</h2>
+                <div class="entry-list" id="entryList">
+                    <div class="empty-state" id="emptyState">
+                        Noch keine Einträge. Starte jetzt!
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: Settings -->
+        <div class="tab-content" id="tab-settings">
+            <div class="section">
+                <h2>Einstellungen</h2>
+                <div class="settings-form">
+                    <div class="form-group">
+                        <label>Startgewicht (kg)</label>
+                        <input type="number" id="startWeight" inputmode="decimal" step="0.1" placeholder="85.0">
+                    </div>
+                    <div class="form-group">
+                        <label>Täglicher Kalorienbedarf (TDEE)</label>
+                        <input type="number" id="tdee" inputmode="numeric" placeholder="2500">
+                    </div>
+                    <div class="form-group">
+                        <label>Zielgewicht (kg)</label>
+                        <input type="number" id="goalWeight" inputmode="decimal" step="0.1" placeholder="z.B. 75.0">
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="saveSettings()">Einstellungen speichern</button>
+                </div>
+                <div class="export-btns">
+                    <button class="btn btn-secondary" onclick="exportData()">Export (JSON)</button>
+                    <label class="btn btn-secondary" style="cursor:pointer;display:flex;align-items:center;justify-content:center">
+                        Import (JSON)
+                        <input type="file" accept=".json" onchange="importData(event)" style="display:none">
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <button class="nav-btn active" onclick="switchTab('dashboard', this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+            Dashboard
+        </button>
+        <button class="nav-btn" onclick="switchTab('add', this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            Eintrag
+        </button>
+        <button class="nav-btn" onclick="switchTab('history', this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Verlauf
+        </button>
+        <button class="nav-btn" onclick="switchTab('settings', this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+            Einstellungen
+        </button>
+    </nav>
+
+    <script>
+        const STORAGE_KEY = 'calorieTracker';
+        let editingDate = null;
+
+        function loadData() {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            const defaults = { settings: { startWeight: null, tdee: null, goalWeight: null }, entries: [] };
+            if (!raw) return defaults;
+            const parsed = JSON.parse(raw);
+            parsed.settings = { ...defaults.settings, ...parsed.settings };
+            return parsed;
+        }
+
+        function saveData(data) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        }
+
+        function formatDate(dateStr) {
+            const d = new Date(dateStr + 'T00:00:00');
+            return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' });
+        }
+
+        // Tab navigation
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            if (btn) btn.classList.add('active');
+            window.scrollTo(0, 0);
+        }
+
+        function init() {
+            const data = loadData();
+            document.getElementById('startWeight').value = data.settings.startWeight || '';
+            document.getElementById('tdee').value = data.settings.tdee || '';
+            document.getElementById('goalWeight').value = data.settings.goalWeight || '';
+            document.getElementById('entryDate').value = new Date().toISOString().split('T')[0];
+            render();
+        }
+
+        function saveSettings() {
+            const data = loadData();
+            data.settings.startWeight = parseFloat(document.getElementById('startWeight').value) || null;
+            data.settings.tdee = parseInt(document.getElementById('tdee').value) || null;
+            data.settings.goalWeight = parseFloat(document.getElementById('goalWeight').value) || null;
+            saveData(data);
+            render();
+            switchTab('dashboard', document.querySelector('.nav-btn'));
+        }
+
+        function addEntry() {
+            const data = loadData();
+            const date = document.getElementById('entryDate').value;
+            const calories = parseInt(document.getElementById('caloriesIn').value);
+            const burned = parseInt(document.getElementById('caloriesBurned').value);
+            const weight = parseFloat(document.getElementById('weightToday').value);
+
+            if (!date || isNaN(calories)) {
+                alert('Bitte Datum und Kalorien eingeben.');
+                return;
+            }
+
+            const entry = { date, calories, burned: isNaN(burned) ? 0 : burned, weight: isNaN(weight) ? null : weight };
+
+            if (editingDate) {
+                const idx = data.entries.findIndex(e => e.date === editingDate);
+                if (idx !== -1) data.entries[idx] = entry;
+                cancelEdit();
+            } else {
+                const existing = data.entries.findIndex(e => e.date === date);
+                if (existing !== -1) {
+                    if (!confirm('Eintrag für dieses Datum überschreiben?')) return;
+                    data.entries[existing] = entry;
+                } else {
+                    data.entries.push(entry);
+                }
+            }
+
+            data.entries.sort((a, b) => a.date.localeCompare(b.date));
+            saveData(data);
+
+            document.getElementById('caloriesIn').value = '';
+            document.getElementById('caloriesBurned').value = '';
+            document.getElementById('weightToday').value = '';
+            document.getElementById('entryDate').value = new Date().toISOString().split('T')[0];
+
+            render();
+            switchTab('dashboard', document.querySelector('.nav-btn'));
+        }
+
+        function editEntry(date) {
+            const data = loadData();
+            const entry = data.entries.find(e => e.date === date);
+            if (!entry) return;
+
+            editingDate = date;
+            document.getElementById('entryDate').value = entry.date;
+            document.getElementById('caloriesIn').value = entry.calories;
+            document.getElementById('caloriesBurned').value = entry.burned || '';
+            document.getElementById('weightToday').value = entry.weight || '';
+
+            document.getElementById('formTitle').textContent = 'Eintrag bearbeiten';
+            document.getElementById('editBanner').style.display = '';
+            document.getElementById('formActionsSingle').style.display = 'none';
+            document.getElementById('formActionsEdit').style.display = '';
+
+            switchTab('add', document.querySelectorAll('.nav-btn')[1]);
+        }
+
+        function cancelEdit() {
+            editingDate = null;
+            document.getElementById('formTitle').textContent = 'Tageseintrag';
+            document.getElementById('editBanner').style.display = 'none';
+            document.getElementById('formActionsSingle').style.display = '';
+            document.getElementById('formActionsEdit').style.display = 'none';
+            document.getElementById('entryDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('caloriesIn').value = '';
+            document.getElementById('caloriesBurned').value = '';
+            document.getElementById('weightToday').value = '';
+        }
+
+        function deleteEntry(date) {
+            if (!confirm(`Eintrag vom ${formatDate(date)} löschen?`)) return;
+            const data = loadData();
+            data.entries = data.entries.filter(e => e.date !== date);
+            saveData(data);
+            render();
+        }
+
+        function render() {
+            const data = loadData();
+            const entries = data.entries;
+            const tdee = data.settings.tdee || 0;
+            const startWeight = data.settings.startWeight || 0;
+
+            let cumulativeDeficit = 0;
+            const processed = entries.map((e) => {
+                const deficit = (tdee + (e.burned || 0)) - e.calories;
+                cumulativeDeficit += deficit;
+                const theoLoss = cumulativeDeficit / 7000;
+                const actualLoss = (startWeight && e.weight) ? startWeight - e.weight : null;
+                return { ...e, deficit, cumulativeDeficit, theoLoss, actualLoss };
+            });
+
+            // Stats
+            const totalDeficit = processed.length > 0 ? processed[processed.length - 1].cumulativeDeficit : 0;
+            const theoLoss = totalDeficit / 7000;
+            const lastEntry = processed.length > 0 ? processed[processed.length - 1] : null;
+            const actualLoss = lastEntry?.actualLoss ?? 0;
+            const diff = actualLoss - theoLoss;
+
+            const defEl = document.getElementById('totalDeficit');
+            defEl.textContent = `${totalDeficit.toLocaleString('de-DE')} kcal`;
+            defEl.className = 'value ' + (totalDeficit > 0 ? 'positive' : totalDeficit < 0 ? 'negative' : '');
+
+            document.getElementById('totalDays').textContent = `${entries.length} Tage`;
+
+            const theoEl = document.getElementById('theoLoss');
+            theoEl.textContent = `${theoLoss.toFixed(2)} kg`;
+            theoEl.className = 'value ' + (theoLoss > 0 ? 'positive' : theoLoss < 0 ? 'negative' : '');
+
+            const actEl = document.getElementById('actualLoss');
+            actEl.textContent = `${actualLoss.toFixed(2)} kg`;
+            actEl.className = 'value ' + (actualLoss > 0 ? 'positive' : actualLoss < 0 ? 'negative' : '');
+
+            document.getElementById('actualWeight').textContent = lastEntry?.weight
+                ? `Aktuell: ${lastEntry.weight.toFixed(1)} kg`
+                : 'Aktuell: — kg';
+
+            const diffEl = document.getElementById('diffLoss');
+            diffEl.textContent = `${diff >= 0 ? '+' : ''}${diff.toFixed(2)} kg`;
+            diffEl.className = 'value ' + (Math.abs(diff) < 0.3 ? 'neutral' : diff > 0 ? 'positive' : 'negative');
+
+            const hint = document.getElementById('diffHint');
+            if (diff > 0.3) hint.textContent = 'Mehr verloren als erwartet';
+            else if (diff < -0.3) hint.textContent = 'Weniger als erwartet';
+            else hint.textContent = 'Theorie ≈ Realität';
+
+            // Goal progress
+            const goalWeight = data.settings.goalWeight;
+            const progressSection = document.getElementById('progressSection');
+            if (goalWeight && startWeight && startWeight > goalWeight) {
+                progressSection.style.display = '';
+                const totalToLose = startWeight - goalWeight;
+                // Use 7-day avg weight if available, else last weight
+                const weightsWithValues = processed.filter(e => e.weight !== null);
+                const last7Weights = weightsWithValues.slice(-7).map(e => e.weight);
+                const avg7 = last7Weights.length > 0 ? last7Weights.reduce((a, b) => a + b, 0) / last7Weights.length : startWeight;
+                const currentWeight = last7Weights.length > 0 ? weightsWithValues[weightsWithValues.length - 1].weight : startWeight;
+                const lost = startWeight - currentWeight;
+                const remaining = Math.max(0, currentWeight - goalWeight);
+                const pct = Math.min(100, Math.max(0, (lost / totalToLose) * 100));
+
+                document.getElementById('progressPct').textContent = `${pct.toFixed(1)}%`;
+                document.getElementById('progressFill').style.width = `${pct}%`;
+                document.getElementById('progressStart').textContent = `${startWeight.toFixed(1)} kg`;
+                document.getElementById('progressCurrent').textContent = `${currentWeight.toFixed(1)} kg`;
+                document.getElementById('progressGoal').textContent = `${goalWeight.toFixed(1)} kg`;
+                document.getElementById('progressRemaining').textContent = `${remaining.toFixed(1)} kg`;
+                document.getElementById('progressAvg').textContent = `${avg7.toFixed(1)} kg`;
+
+                // Rate: weight change per week based on last 7+ days
+                if (weightsWithValues.length >= 2) {
+                    const recentDays = Math.min(weightsWithValues.length, 7);
+                    const oldest = weightsWithValues[weightsWithValues.length - recentDays];
+                    const newest = weightsWithValues[weightsWithValues.length - 1];
+                    const daysBetween = (new Date(newest.date) - new Date(oldest.date)) / (1000 * 60 * 60 * 24);
+                    if (daysBetween > 0) {
+                        const weeklyRate = ((oldest.weight - newest.weight) / daysBetween) * 7;
+                        document.getElementById('progressRate').textContent = `${weeklyRate.toFixed(2)} kg/Woche`;
+
+                        if (weeklyRate > 0 && remaining > 0) {
+                            const weeksLeft = remaining / (weeklyRate / 7) / 7;
+                            const eta = new Date();
+                            eta.setDate(eta.getDate() + Math.round(weeksLeft * 7));
+                            document.getElementById('progressEta').textContent = eta.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                        } else {
+                            document.getElementById('progressEta').textContent = remaining <= 0 ? 'Ziel erreicht!' : '—';
+                        }
+                    } else {
+                        document.getElementById('progressRate').textContent = '—';
+                        document.getElementById('progressEta').textContent = '—';
+                    }
+                } else {
+                    document.getElementById('progressRate').textContent = 'Mehr Daten nötig';
+                    document.getElementById('progressEta').textContent = '—';
+                }
+            } else {
+                progressSection.style.display = 'none';
+            }
+
+            // Entry list (card-based)
+            const list = document.getElementById('entryList');
+            const empty = document.getElementById('emptyState');
+
+            if (processed.length === 0) {
+                list.innerHTML = '';
+                list.appendChild(empty);
+                empty.style.display = '';
+            } else {
+                empty.style.display = 'none';
+                list.innerHTML = processed.map(e => `
+                    <div class="entry-card">
+                        <div class="entry-header">
+                            <span class="entry-date">${formatDate(e.date)}</span>
+                            <span class="deficit-badge ${e.deficit >= 0 ? 'is-deficit' : 'is-surplus'}">${e.deficit >= 0 ? '-' : '+'}${Math.abs(e.deficit).toLocaleString('de-DE')} kcal</span>
+                        </div>
+                        <div class="entry-grid">
+                            <div class="entry-field">
+                                <span class="ef-label">Gegessen</span>
+                                <span class="ef-value">${e.calories.toLocaleString('de-DE')} kcal</span>
+                            </div>
+                            <div class="entry-field">
+                                <span class="ef-label">Verbrannt</span>
+                                <span class="ef-value">${(e.burned || 0).toLocaleString('de-DE')} kcal</span>
+                            </div>
+                            <div class="entry-field">
+                                <span class="ef-label">Gewicht</span>
+                                <span class="ef-value">${e.weight ? e.weight.toFixed(1) + ' kg' : '—'}</span>
+                            </div>
+                            <div class="entry-field">
+                                <span class="ef-label">Theo. Verlust</span>
+                                <span class="ef-value positive">${e.theoLoss.toFixed(2)} kg</span>
+                            </div>
+                            ${e.actualLoss !== null ? `
+                            <div class="entry-field">
+                                <span class="ef-label">Tats. Verlust</span>
+                                <span class="ef-value positive">${e.actualLoss.toFixed(2)} kg</span>
+                            </div>` : ''}
+                        </div>
+                        <div class="entry-actions" style="margin-top:8px">
+                            <button class="edit-btn" onclick="editEntry('${e.date}')">Bearbeiten</button>
+                            <button class="del-btn" onclick="deleteEntry('${e.date}')">Löschen</button>
+                        </div>
+                    </div>
+                `).reverse().join('');
+            }
+
+            renderCharts(processed, startWeight);
+        }
+
+        let weightChart, deficitChart;
+
+        function renderCharts(processed, startWeight) {
+            const labels = processed.map(e => formatDate(e.date));
+            const theoWeights = processed.map(e => startWeight ? +(startWeight - e.theoLoss).toFixed(2) : null);
+            const actualWeights = processed.map(e => e.weight);
+            const deficits = processed.map(e => e.deficit);
+
+            // 7-day moving average (only over entries that have weight)
+            const avg7Weights = processed.map((e, i) => {
+                const window = [];
+                for (let j = i; j >= 0 && window.length < 7; j--) {
+                    if (processed[j].weight !== null) window.push(processed[j].weight);
+                }
+                return window.length > 0 ? +(window.reduce((a, b) => a + b, 0) / window.length).toFixed(2) : null;
+            });
+
+            const chartFont = { size: 10 };
+            const gridColor = '#2a2d3a';
+            const tickColor = '#8b8d97';
+
+            const ctx1 = document.getElementById('weightChart').getContext('2d');
+            if (weightChart) weightChart.destroy();
+            weightChart = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: 'Theoretisch',
+                            data: theoWeights,
+                            borderColor: '#6366f1',
+                            backgroundColor: 'rgba(99,102,241,0.1)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            fill: false,
+                            pointRadius: 2,
+                            pointHitRadius: 10,
+                        },
+                        {
+                            label: 'Tatsächlich',
+                            data: actualWeights,
+                            borderColor: '#22c55e',
+                            backgroundColor: 'rgba(34,197,94,0.1)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            fill: false,
+                            pointRadius: 2,
+                            pointHitRadius: 10,
+                        },
+                        {
+                            label: 'Ø 7 Tage',
+                            data: avg7Weights,
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245,158,11,0.1)',
+                            borderWidth: 2,
+                            borderDash: [6, 3],
+                            tension: 0.4,
+                            fill: false,
+                            pointRadius: 0,
+                            pointHitRadius: 10,
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { labels: { color: tickColor, font: chartFont, boxWidth: 12 } }
+                    },
+                    scales: {
+                        x: { ticks: { color: tickColor, font: chartFont, maxRotation: 45 }, grid: { color: gridColor } },
+                        y: { ticks: { color: tickColor, font: chartFont }, grid: { color: gridColor } }
+                    }
+                }
+            });
+
+            const ctx2 = document.getElementById('deficitChart').getContext('2d');
+            if (deficitChart) deficitChart.destroy();
+            deficitChart = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Defizit / Überschuss',
+                        data: deficits,
+                        backgroundColor: deficits.map(d => d >= 0 ? 'rgba(34,197,94,0.7)' : 'rgba(239,68,68,0.7)'),
+                        borderColor: deficits.map(d => d >= 0 ? '#22c55e' : '#ef4444'),
+                        borderWidth: 1,
+                        borderRadius: 3,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { labels: { color: tickColor, font: chartFont, boxWidth: 12 } }
+                    },
+                    scales: {
+                        x: { ticks: { color: tickColor, font: chartFont, maxRotation: 45 }, grid: { color: gridColor } },
+                        y: { ticks: { color: tickColor, font: chartFont }, grid: { color: gridColor }, beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        function exportData() {
+            const data = loadData();
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `kalorientracker_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (imported.settings && imported.entries) {
+                        if (confirm('Alle Daten werden ersetzt. Fortfahren?')) {
+                            saveData(imported);
+                            init();
+                        }
+                    } else {
+                        alert('Ungültiges Dateiformat.');
+                    }
+                } catch {
+                    alert('Fehler beim Lesen der Datei.');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // PWA Install
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('installBanner').classList.add('show');
+        });
+
+        function installPWA() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then(() => {
+                    deferredPrompt = null;
+                    document.getElementById('installBanner').classList.remove('show');
+                });
+            }
+        }
+
+        function dismissInstall() {
+            document.getElementById('installBanner').classList.remove('show');
+        }
+
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(() => {});
+        }
+
+        init();
+    </script>
+</body>
+</html>
