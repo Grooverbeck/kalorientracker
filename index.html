@@ -588,12 +588,12 @@
                     <div class="sub">7000 kcal/kg</div>
                 </div>
                 <div class="stat-card">
-                    <div class="label">Tats. Gewichtsverlust</div>
+                    <div class="label">Gewichtsverlust (Ø 7T)</div>
                     <div class="value" id="actualLoss">0.00 kg</div>
-                    <div class="sub" id="actualWeight">Aktuell: — kg</div>
+                    <div class="sub" id="actualWeight">Ø Gewicht: — kg</div>
                 </div>
                 <div class="stat-card">
-                    <div class="label">Differenz</div>
+                    <div class="label">Differenz (Ø 7T)</div>
                     <div class="value" id="diffLoss">0.00 kg</div>
                     <div class="sub" id="diffHint">Theorie vs. Realität</div>
                 </div>
@@ -891,12 +891,16 @@
                 return { ...e, deficit, cumulativeDeficit, theoLoss, actualLoss };
             });
 
+            // 7-day average weight
+            const weightsAll = processed.filter(e => e.weight !== null);
+            const last7W = weightsAll.slice(-7).map(e => e.weight);
+            const avg7Weight = last7W.length > 0 ? last7W.reduce((a, b) => a + b, 0) / last7W.length : null;
+            const avgLoss = (startWeight && avg7Weight) ? startWeight - avg7Weight : 0;
+
             // Stats
             const totalDeficit = processed.length > 0 ? processed[processed.length - 1].cumulativeDeficit : 0;
             const theoLoss = totalDeficit / 7000;
-            const lastEntry = processed.length > 0 ? processed[processed.length - 1] : null;
-            const actualLoss = lastEntry?.actualLoss ?? 0;
-            const diff = actualLoss - theoLoss;
+            const diff = avgLoss - theoLoss;
 
             const defEl = document.getElementById('totalDeficit');
             defEl.textContent = `${totalDeficit.toLocaleString('de-DE')} kcal`;
@@ -909,12 +913,12 @@
             theoEl.className = 'value ' + (theoLoss > 0 ? 'positive' : theoLoss < 0 ? 'negative' : '');
 
             const actEl = document.getElementById('actualLoss');
-            actEl.textContent = `${actualLoss.toFixed(2)} kg`;
-            actEl.className = 'value ' + (actualLoss > 0 ? 'positive' : actualLoss < 0 ? 'negative' : '');
+            actEl.textContent = `${avgLoss.toFixed(2)} kg`;
+            actEl.className = 'value ' + (avgLoss > 0 ? 'positive' : avgLoss < 0 ? 'negative' : '');
 
-            document.getElementById('actualWeight').textContent = lastEntry?.weight
-                ? `Aktuell: ${lastEntry.weight.toFixed(1)} kg`
-                : 'Aktuell: — kg';
+            document.getElementById('actualWeight').textContent = avg7Weight
+                ? `Ø ${last7W.length} Tage: ${avg7Weight.toFixed(1)} kg`
+                : 'Ø Gewicht: — kg';
 
             const diffEl = document.getElementById('diffLoss');
             diffEl.textContent = `${diff >= 0 ? '+' : ''}${diff.toFixed(2)} kg`;
@@ -931,28 +935,24 @@
             if (goalWeight && startWeight && startWeight > goalWeight) {
                 progressSection.style.display = '';
                 const totalToLose = startWeight - goalWeight;
-                // Use 7-day avg weight if available, else last weight
-                const weightsWithValues = processed.filter(e => e.weight !== null);
-                const last7Weights = weightsWithValues.slice(-7).map(e => e.weight);
-                const avg7 = last7Weights.length > 0 ? last7Weights.reduce((a, b) => a + b, 0) / last7Weights.length : startWeight;
-                const currentWeight = last7Weights.length > 0 ? weightsWithValues[weightsWithValues.length - 1].weight : startWeight;
-                const lost = startWeight - currentWeight;
-                const remaining = Math.max(0, currentWeight - goalWeight);
+                const currentAvg = avg7Weight || startWeight;
+                const lost = startWeight - currentAvg;
+                const remaining = Math.max(0, currentAvg - goalWeight);
                 const pct = Math.min(100, Math.max(0, (lost / totalToLose) * 100));
 
                 document.getElementById('progressPct').textContent = `${pct.toFixed(1)}%`;
                 document.getElementById('progressFill').style.width = `${pct}%`;
                 document.getElementById('progressStart').textContent = `${startWeight.toFixed(1)} kg`;
-                document.getElementById('progressCurrent').textContent = `${currentWeight.toFixed(1)} kg`;
+                document.getElementById('progressCurrent').textContent = `${currentAvg.toFixed(1)} kg`;
                 document.getElementById('progressGoal').textContent = `${goalWeight.toFixed(1)} kg`;
                 document.getElementById('progressRemaining').textContent = `${remaining.toFixed(1)} kg`;
-                document.getElementById('progressAvg').textContent = `${avg7.toFixed(1)} kg`;
+                document.getElementById('progressAvg').textContent = `${currentAvg.toFixed(1)} kg`;
 
                 // Rate: weight change per week based on last 7+ days
-                if (weightsWithValues.length >= 2) {
-                    const recentDays = Math.min(weightsWithValues.length, 7);
-                    const oldest = weightsWithValues[weightsWithValues.length - recentDays];
-                    const newest = weightsWithValues[weightsWithValues.length - 1];
+                if (weightsAll.length >= 2) {
+                    const recentDays = Math.min(weightsAll.length, 7);
+                    const oldest = weightsAll[weightsAll.length - recentDays];
+                    const newest = weightsAll[weightsAll.length - 1];
                     const daysBetween = (new Date(newest.date) - new Date(oldest.date)) / (1000 * 60 * 60 * 24);
                     if (daysBetween > 0) {
                         const weeklyRate = ((oldest.weight - newest.weight) / daysBetween) * 7;
