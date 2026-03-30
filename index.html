@@ -757,8 +757,70 @@
 
         .ai-item:last-child { border-bottom: none; }
 
+        .ai-item-left {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-width: 0;
+        }
+
         .ai-item-name { color: var(--text); }
-        .ai-item-kcal { color: var(--muted); font-weight: 500; }
+
+        .ai-item-detail {
+            font-size: 0.7rem;
+            color: var(--muted);
+            margin-top: 1px;
+        }
+
+        .ai-item-kcal {
+            color: var(--text);
+            font-weight: 600;
+            flex-shrink: 0;
+            margin-left: 8px;
+        }
+
+        .ai-item-kcal::after {
+            content: ' kcal';
+            font-weight: 400;
+            color: var(--muted);
+            font-size: 0.7rem;
+        }
+
+        .ai-macros-summary {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 6px;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border);
+        }
+
+        .ai-macro {
+            text-align: center;
+        }
+
+        .ai-macro-val {
+            display: block;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .ai-macro-label {
+            font-size: 0.65rem;
+            color: var(--muted);
+            text-transform: uppercase;
+        }
+
+        .ai-warning {
+            margin-top: 8px;
+            padding: 8px 10px;
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid var(--orange);
+            border-radius: 6px;
+            font-size: 0.75rem;
+            color: var(--orange);
+        }
 
         .ai-accept-btn {
             background: var(--green);
@@ -1502,13 +1564,21 @@
             try {
                 const parts = [];
 
-                const prompt = `Du bist ein Ernährungsexperte. Analysiere die folgende Mahlzeit und schätze die Kalorien.
-${text ? `Beschreibung: "${text}"` : 'Analysiere das Essen auf dem Foto.'}
+                const prompt = `Du bist ein zertifizierter Ernährungsberater mit Zugang zu deutschen Nährwert-Datenbanken (BLS, USDA).
 
-Antworte NUR mit einem JSON-Objekt in diesem exakten Format (kein Markdown, kein Text drumherum):
-{"items":[{"name":"Lebensmittel","kcal":123,"menge":"Portionsgröße"}],"total":456}
+AUFGABE: Analysiere die folgende Mahlzeit und schätze die Kalorien so genau wie möglich.
+${text ? `Beschreibung: "${text}"` : ''}
+${aiPhotoBase64 ? 'Ein Foto der Mahlzeit ist angehängt. Analysiere Portionsgrößen visuell anhand von Tellergrößen, Besteck und anderen Referenzobjekten.' : ''}
 
-Sei realistisch bei den Portionsgrößen. Gib für jedes einzelne Lebensmittel einen eigenen Eintrag.`;
+REGELN:
+1. Schätze das Gewicht JEDER Zutat in Gramm. Nutze realistische deutsche Standardportionen wenn keine Menge angegeben ist (z.B. Scheibe Brot = 50g, Ei = 60g, Teller Pasta = 200g gekocht).
+2. Berücksichtige die Zubereitungsart: gebratenes Ei hat mehr kcal als gekochtes (Bratfett!). Paniertes hat mehr als Gegrilltes. Soßen und Öle IMMER separat auflisten.
+3. Berechne für jede Zutat: Protein (g), Fett (g), Kohlenhydrate (g). Verifiziere: P×4 + F×9 + KH×4 muss ungefähr den kcal-Wert ergeben.
+4. Im Zweifel leicht ÜBER-schätzen statt unterschätzen (versteckte Kalorien: Öl beim Braten, Butter, Dressings, Zucker in Soßen).
+5. Getränke nicht vergessen (Milch im Kaffee, Zucker, Saft, Alkohol).
+
+Antworte NUR mit einem JSON-Objekt (kein Markdown, kein Text drumherum):
+{"items":[{"name":"Lebensmittel","menge":"150g","kcal":234,"protein":12,"fett":8,"kh":25}],"total":456,"protein_total":40,"fett_total":20,"kh_total":55}`;
 
                 parts.push({ text: prompt });
 
@@ -1552,12 +1622,28 @@ Sei realistisch bei den Portionsgrößen. Gib für jedes einzelne Lebensmittel e
 
                 // Render result
                 document.getElementById('aiTotal').textContent = `${parsed.total} kcal`;
-                document.getElementById('aiItems').innerHTML = parsed.items.map(item =>
-                    `<div class="ai-item">
-                        <span class="ai-item-name">${item.name} <span style="color:var(--muted);font-size:0.75rem">(${item.menge})</span></span>
-                        <span class="ai-item-kcal">${item.kcal} kcal</span>
-                    </div>`
-                ).join('');
+
+                // Macro cross-check
+                const calcKcal = (parsed.protein_total || 0) * 4 + (parsed.fett_total || 0) * 9 + (parsed.kh_total || 0) * 4;
+                const deviation = Math.abs(calcKcal - parsed.total);
+                const crossCheckOk = deviation < parsed.total * 0.15;
+
+                document.getElementById('aiItems').innerHTML =
+                    parsed.items.map(item =>
+                        `<div class="ai-item">
+                            <div class="ai-item-left">
+                                <span class="ai-item-name">${item.name}</span>
+                                <span class="ai-item-detail">${item.menge} · P${item.protein || 0}g · F${item.fett || 0}g · KH${item.kh || 0}g</span>
+                            </div>
+                            <span class="ai-item-kcal">${item.kcal}</span>
+                        </div>`
+                    ).join('') +
+                    `<div class="ai-macros-summary">
+                        <div class="ai-macro"><span class="ai-macro-val">${parsed.protein_total || 0}g</span><span class="ai-macro-label">Protein</span></div>
+                        <div class="ai-macro"><span class="ai-macro-val">${parsed.fett_total || 0}g</span><span class="ai-macro-label">Fett</span></div>
+                        <div class="ai-macro"><span class="ai-macro-val">${parsed.kh_total || 0}g</span><span class="ai-macro-label">Kohlenhydrate</span></div>
+                    </div>` +
+                    (!crossCheckOk ? `<div class="ai-warning">Makro-Check: Abweichung ${deviation} kcal – Schätzung ggf. ungenau</div>` : '');
 
                 document.getElementById('aiResult').classList.add('show');
 
