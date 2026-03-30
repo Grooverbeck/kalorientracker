@@ -557,6 +557,235 @@
             text-align: center;
             padding: 8px;
         }
+
+        /* AI Meal Analyzer */
+        .ai-section {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .ai-section h2 {
+            font-size: 1rem;
+            margin-bottom: 4px;
+        }
+
+        .ai-subtitle {
+            font-size: 0.75rem;
+            color: var(--muted);
+            margin-bottom: 12px;
+        }
+
+        .ai-input-area {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .ai-textarea {
+            width: 100%;
+            padding: 12px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            font-size: 16px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 70px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .ai-textarea:focus {
+            border-color: var(--accent);
+        }
+
+        .ai-textarea::placeholder {
+            color: var(--muted);
+        }
+
+        .ai-photo-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .ai-photo-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 14px;
+            background: var(--bg);
+            border: 1px dashed var(--border);
+            border-radius: 10px;
+            color: var(--muted);
+            font-size: 0.85rem;
+            cursor: pointer;
+            flex: 1;
+            justify-content: center;
+            touch-action: manipulation;
+        }
+
+        .ai-photo-btn:active {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .ai-photo-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .ai-preview {
+            position: relative;
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .ai-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .ai-preview .remove-img {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 20px;
+            height: 20px;
+            background: rgba(0,0,0,0.7);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 0.7rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ai-analyze-btn {
+            background: linear-gradient(135deg, var(--accent), #8b5cf6);
+            color: white;
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            touch-action: manipulation;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .ai-analyze-btn:active {
+            transform: scale(0.97);
+        }
+
+        .ai-analyze-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .ai-analyze-btn .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* AI Result */
+        .ai-result {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px;
+            display: none;
+        }
+
+        .ai-result.show { display: block; }
+
+        .ai-result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .ai-result-total {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .ai-result-label {
+            font-size: 0.75rem;
+            color: var(--muted);
+        }
+
+        .ai-items {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .ai-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.85rem;
+        }
+
+        .ai-item:last-child { border-bottom: none; }
+
+        .ai-item-name { color: var(--text); }
+        .ai-item-kcal { color: var(--muted); font-weight: 500; }
+
+        .ai-accept-btn {
+            background: var(--green);
+            color: white;
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        .ai-accept-btn:active { transform: scale(0.97); }
+
+        .ai-no-key {
+            text-align: center;
+            padding: 16px;
+            color: var(--muted);
+            font-size: 0.85rem;
+        }
+
+        .ai-no-key a {
+            color: var(--accent);
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -652,6 +881,44 @@
 
         <!-- TAB: Add Entry -->
         <div class="tab-content" id="tab-add">
+            <!-- AI Meal Analyzer -->
+            <div class="ai-section" id="aiSection">
+                <h2>AI Kalorien-Schätzer</h2>
+                <p class="ai-subtitle">Beschreibe dein Essen oder mach ein Foto</p>
+                <div id="aiNoKey" class="ai-no-key" style="display:none">
+                    Gemini API-Key fehlt.<br>
+                    Hol dir einen kostenlosen Key bei <a href="https://aistudio.google.com/apikey" target="_blank">Google AI Studio</a><br>
+                    und trage ihn unter Einstellungen ein.
+                </div>
+                <div id="aiContent" class="ai-input-area">
+                    <textarea class="ai-textarea" id="aiMealText" placeholder="z.B. 2 Spiegeleier, 2 Scheiben Toast mit Butter, Kaffee mit Milch..."></textarea>
+                    <div class="ai-photo-row">
+                        <label class="ai-photo-btn" id="aiPhotoLabel">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                            Foto hinzufügen
+                            <input type="file" accept="image/*" capture="environment" id="aiPhotoInput" onchange="handlePhoto(event)" style="display:none">
+                        </label>
+                        <div class="ai-preview" id="aiPreview" style="display:none">
+                            <img id="aiPreviewImg" src="" alt="">
+                            <button class="remove-img" onclick="removePhoto()">&times;</button>
+                        </div>
+                    </div>
+                    <button class="ai-analyze-btn" id="aiAnalyzeBtn" onclick="analyzeMeal()">
+                        <span id="aiBtnText">Kalorien schätzen</span>
+                    </button>
+                    <div class="ai-result" id="aiResult">
+                        <div class="ai-result-header">
+                            <div>
+                                <div class="ai-result-label">Geschätzte Kalorien</div>
+                                <div class="ai-result-total" id="aiTotal">0 kcal</div>
+                            </div>
+                        </div>
+                        <div class="ai-items" id="aiItems"></div>
+                        <button class="ai-accept-btn" onclick="acceptAiResult()">Übernehmen</button>
+                    </div>
+                </div>
+            </div>
+
             <div class="section">
                 <h2 id="formTitle">Tageseintrag</h2>
                 <div id="editBanner" class="edit-banner" style="display:none">Eintrag wird bearbeitet</div>
@@ -714,6 +981,13 @@
                         <label>Zielgewicht (kg)</label>
                         <input type="number" id="goalWeight" inputmode="decimal" step="0.1" placeholder="z.B. 75.0">
                     </div>
+                    <div class="form-group">
+                        <label>Gemini API-Key (kostenlos)</label>
+                        <input type="password" id="geminiKey" placeholder="AIza..." autocomplete="off">
+                        <div style="font-size:0.7rem;color:var(--muted);margin-top:4px">
+                            <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent)">Hier kostenlosen Key holen</a>
+                        </div>
+                    </div>
                     <button class="btn btn-primary btn-sm" onclick="saveSettings()">Einstellungen speichern</button>
                 </div>
                 <div class="export-btns">
@@ -753,7 +1027,7 @@
 
         function loadData() {
             const raw = localStorage.getItem(STORAGE_KEY);
-            const defaults = { settings: { startWeight: null, tdee: null, goalWeight: null }, entries: [] };
+            const defaults = { settings: { startWeight: null, tdee: null, goalWeight: null, geminiKey: '' }, entries: [] };
             if (!raw) return defaults;
             const parsed = JSON.parse(raw);
             parsed.settings = { ...defaults.settings, ...parsed.settings };
@@ -783,7 +1057,9 @@
             document.getElementById('startWeight').value = data.settings.startWeight || '';
             document.getElementById('tdee').value = data.settings.tdee || '';
             document.getElementById('goalWeight').value = data.settings.goalWeight || '';
+            document.getElementById('geminiKey').value = data.settings.geminiKey || '';
             document.getElementById('entryDate').value = new Date().toISOString().split('T')[0];
+            updateAiVisibility();
             render();
         }
 
@@ -792,7 +1068,9 @@
             data.settings.startWeight = parseFloat(document.getElementById('startWeight').value) || null;
             data.settings.tdee = parseInt(document.getElementById('tdee').value) || null;
             data.settings.goalWeight = parseFloat(document.getElementById('goalWeight').value) || null;
+            data.settings.geminiKey = document.getElementById('geminiKey').value.trim();
             saveData(data);
+            updateAiVisibility();
             render();
             switchTab('dashboard', document.querySelector('.nav-btn'));
         }
@@ -1167,6 +1445,142 @@
                 }
             };
             reader.readAsText(file);
+        }
+
+        // AI Meal Analyzer
+        let aiPhotoBase64 = null;
+        let aiTotalKcal = 0;
+
+        function updateAiVisibility() {
+            const data = loadData();
+            const hasKey = !!data.settings.geminiKey;
+            document.getElementById('aiNoKey').style.display = hasKey ? 'none' : '';
+            document.getElementById('aiContent').style.display = hasKey ? '' : 'none';
+        }
+
+        function handlePhoto(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                aiPhotoBase64 = e.target.result;
+                document.getElementById('aiPreviewImg').src = aiPhotoBase64;
+                document.getElementById('aiPreview').style.display = '';
+                document.getElementById('aiPhotoLabel').innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    Foto ändern
+                    <input type="file" accept="image/*" capture="environment" id="aiPhotoInput" onchange="handlePhoto(event)" style="display:none">`;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removePhoto() {
+            aiPhotoBase64 = null;
+            document.getElementById('aiPreview').style.display = 'none';
+            document.getElementById('aiPhotoLabel').innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                Foto hinzufügen
+                <input type="file" accept="image/*" capture="environment" id="aiPhotoInput" onchange="handlePhoto(event)" style="display:none">`;
+        }
+
+        async function analyzeMeal() {
+            const data = loadData();
+            const key = data.settings.geminiKey;
+            if (!key) return;
+
+            const text = document.getElementById('aiMealText').value.trim();
+            if (!text && !aiPhotoBase64) {
+                alert('Bitte beschreibe dein Essen oder füge ein Foto hinzu.');
+                return;
+            }
+
+            const btn = document.getElementById('aiAnalyzeBtn');
+            const btnText = document.getElementById('aiBtnText');
+            btn.disabled = true;
+            btnText.innerHTML = '<span class="spinner"></span> Analysiere...';
+
+            try {
+                const parts = [];
+
+                const prompt = `Du bist ein Ernährungsexperte. Analysiere die folgende Mahlzeit und schätze die Kalorien.
+${text ? `Beschreibung: "${text}"` : 'Analysiere das Essen auf dem Foto.'}
+
+Antworte NUR mit einem JSON-Objekt in diesem exakten Format (kein Markdown, kein Text drumherum):
+{"items":[{"name":"Lebensmittel","kcal":123,"menge":"Portionsgröße"}],"total":456}
+
+Sei realistisch bei den Portionsgrößen. Gib für jedes einzelne Lebensmittel einen eigenen Eintrag.`;
+
+                parts.push({ text: prompt });
+
+                if (aiPhotoBase64) {
+                    const base64Data = aiPhotoBase64.split(',')[1];
+                    const mimeType = aiPhotoBase64.split(';')[0].split(':')[1];
+                    parts.push({
+                        inline_data: {
+                            mime_type: mimeType,
+                            data: base64Data
+                        }
+                    });
+                }
+
+                const model = aiPhotoBase64 ? 'gemini-2.0-flash' : 'gemini-2.0-flash';
+                const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts }],
+                        generationConfig: { temperature: 0.1 }
+                    })
+                });
+
+                if (!resp.ok) {
+                    const err = await resp.json();
+                    throw new Error(err.error?.message || 'API-Fehler');
+                }
+
+                const result = await resp.json();
+                const responseText = result.candidates[0].content.parts[0].text;
+
+                // Extract JSON from response (handle markdown code blocks)
+                let jsonStr = responseText;
+                const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
+                if (jsonMatch) jsonStr = jsonMatch[1];
+                jsonStr = jsonStr.trim();
+
+                const parsed = JSON.parse(jsonStr);
+                aiTotalKcal = parsed.total;
+
+                // Render result
+                document.getElementById('aiTotal').textContent = `${parsed.total} kcal`;
+                document.getElementById('aiItems').innerHTML = parsed.items.map(item =>
+                    `<div class="ai-item">
+                        <span class="ai-item-name">${item.name} <span style="color:var(--muted);font-size:0.75rem">(${item.menge})</span></span>
+                        <span class="ai-item-kcal">${item.kcal} kcal</span>
+                    </div>`
+                ).join('');
+
+                document.getElementById('aiResult').classList.add('show');
+
+            } catch (err) {
+                alert('Fehler: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btnText.textContent = 'Kalorien schätzen';
+            }
+        }
+
+        function acceptAiResult() {
+            const currentVal = parseInt(document.getElementById('caloriesIn').value) || 0;
+            document.getElementById('caloriesIn').value = currentVal + aiTotalKcal;
+
+            // Reset AI section
+            document.getElementById('aiMealText').value = '';
+            document.getElementById('aiResult').classList.remove('show');
+            removePhoto();
+            aiTotalKcal = 0;
+
+            // Scroll to the calorie field
+            document.getElementById('caloriesIn').focus();
         }
 
         // PWA Install
